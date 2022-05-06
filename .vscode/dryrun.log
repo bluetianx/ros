@@ -1,0 +1,14 @@
+make --dry-run --always-make --keep-going --print-directory
+make: Entering directory `/Users/tianxiaoqing/D/github/ros'
+(rustup target list | grep "riscv64gc-unknown-none-elf (installed)") || rustup target add riscv64gc-unknown-none-elf
+cargo install cargo-binutils --vers ~0.2
+rustup component add rust-src
+rustup component add llvm-tools-preview
+echo Platform: qemu
+cp src/linker-qemu.ld src/linker.ld
+cargo build --release
+rm src/linker.ld
+ 
+rust-objcopy --binary-architecture=riscv64 target/riscv64gc-unknown-none-elf/release/ros --strip-all -O binary target/riscv64gc-unknown-none-elf/release/ros.bin
+make: Leaving directory `/Users/tianxiaoqing/D/github/ros'
+ 
