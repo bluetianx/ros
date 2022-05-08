@@ -1,12 +1,12 @@
-FROM ubuntu:18.04
+FROM ubuntu:22.10
 LABEL maintainer="dinghao188" \
       version="1.0" \
-      description="ubuntu 18.04 with tools for tsinghua's rCore-Tutorial-V3"
+      description="ubuntu 22.10 with tools for tsinghua's rCore-Tutorial-V3"
 
 #install some deps
 RUN set -x \
-    && apt-get update \
-    && apt-get install -y curl wget autoconf automake autotools-dev curl libmpc-dev libmpfr-dev libgmp-dev \
+    && apt update \
+    && apt install -y curl wget autoconf automake autotools-dev curl libmpc-dev libmpfr-dev libgmp-dev \
               gawk build-essential bison flex texinfo gperf libtool patchutils bc xz-utils \
               zlib1g-dev libexpat-dev pkg-config  libglib2.0-dev libpixman-1-dev git tmux python3 
 
