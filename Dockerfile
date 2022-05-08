@@ -27,7 +27,7 @@ RUN set -x; \
     && cd $HOME && rm -rf qemu-5.0.0 qemu-5.0.0.tar.xz
 
 #get code for rcore-tutorial-v3
-RUN cd $HOME && git clone https://github.com/rcore-os/rCore-Tutorial-v3
+#RUN cd $HOME && git clone https://github.com/rcore-os/rCore-Tutorial-v3
 
 #for chinese network
 RUN set -x; \
