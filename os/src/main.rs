@@ -17,14 +17,24 @@
 mod console;
 mod lang_items;
 mod sbi;
+mod logging;
 
+use log::{info, trace, debug, warn,error};
+use logging::init;
 use core::arch::global_asm;
 global_asm!(include_str!("entry.asm"));
 
 #[no_mangle]
 fn rust_main() {
     clear_bss();
-    println!("Hello, world!");
+    init();
+
+    trace!("hello trace");
+    debug!("hello debug");
+    info!("hello info");
+    warn!("hello warn");
+    error!("hello {}","error");
+
     panic!("Shutdown machine!");
 }
 fn clear_bss() {
