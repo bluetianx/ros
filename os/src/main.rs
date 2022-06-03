@@ -8,19 +8,22 @@
 //! We then call [`println!`] to display `Hello, world!`.
 
 #![deny(missing_docs)]
-#![deny(warnings)]
+//#![deny(warnings)]
 #![no_std]
 #![no_main]
 #![feature(panic_info_message)]
-
 #[macro_use]
 mod console;
+pub mod batch;
 mod lang_items;
 mod sbi;
+mod sync;
+pub mod syscall;
+pub mod trap;
 mod logging;
 
-use log::{info, trace, debug, warn,error};
-use logging::init;
+//use log::{info, trace, debug, warn,error};
+//use logging::init;
 use core::arch::global_asm;
 global_asm!(include_str!("entry.asm"));
 global_asm!(include_str!("link_app.S"));
@@ -28,22 +31,23 @@ global_asm!(include_str!("link_app.S"));
 #[no_mangle]
 fn rust_main() {
     clear_bss();
-    init();
+    //init();
+    
+    //info!("[kernel] Hello, world!");
+    println!("[kernel] Hello, world!");
 
-    trace!("hello trace");
-    debug!("hello debug");
-    info!("hello info");
-    warn!("hello warn");
-    error!("hello {}","error");
-
-    panic!("Shutdown machine!");
+    trap::init();
+    batch::init();
+    batch::run_next_app();
 }
+
 fn clear_bss() {
     extern "C" {
         fn sbss();
         fn ebss();
     }
-    (sbss as usize..ebss as usize).for_each(|a| 
-        unsafe { (a as *mut u8).write_volatile(0) }
-    );
+    unsafe {
+        core::slice::from_raw_parts_mut(sbss as usize as *mut u8, ebss as usize - sbss as usize)
+            .fill(0);
+    }
 }
