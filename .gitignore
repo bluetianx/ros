@@ -3,3 +3,5 @@ os/target/
 .vscode/
 cmd.txt
 .DS_Store
+os/.DS_Store
+os/last-qemu
