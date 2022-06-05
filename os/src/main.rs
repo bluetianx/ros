@@ -33,8 +33,7 @@ fn rust_main() {
     clear_bss();
     init();
     
-    info!("[kernel] Hello, world!");
-    //println!("[kernel] Hello, world!");
+    info!("kernel Hello, world!");
 
     trap::init();
     batch::init();

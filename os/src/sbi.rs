@@ -12,6 +12,8 @@ const SBI_SHUTDOWN: usize = 8;
 
 use core::arch::asm;
 
+use log::warn;
+
 #[inline(always)]
 fn sbi_call(which: usize, arg0: usize, arg1: usize, arg2: usize) -> usize {
     let mut ret;
