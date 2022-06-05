@@ -22,8 +22,8 @@ pub mod syscall;
 pub mod trap;
 mod logging;
 
-//use log::{info, trace, debug, warn,error};
-//use logging::init;
+use log::{info, trace, debug, warn,error};
+use logging::init;
 use core::arch::global_asm;
 global_asm!(include_str!("entry.asm"));
 global_asm!(include_str!("link_app.S"));
@@ -31,10 +31,10 @@ global_asm!(include_str!("link_app.S"));
 #[no_mangle]
 fn rust_main() {
     clear_bss();
-    //init();
+    init();
     
-    //info!("[kernel] Hello, world!");
-    println!("[kernel] Hello, world!");
+    info!("[kernel] Hello, world!");
+    //println!("[kernel] Hello, world!");
 
     trap::init();
     batch::init();
