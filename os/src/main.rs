@@ -16,10 +16,14 @@
 mod console;
 pub mod batch;
 mod lang_items;
+mod loader;
 mod sbi;
 mod sync;
 pub mod syscall;
+pub mod task;
+mod timer;
 pub mod trap;
+
 mod logging;
 
 use log::{info, trace, debug, warn,error};
@@ -32,12 +36,16 @@ global_asm!(include_str!("link_app.S"));
 fn rust_main() {
     clear_bss();
     init();
-    
+
     info!("kernel Hello, world!");
 
     trap::init();
-    batch::init();
-    batch::run_next_app();
+    loader::load_apps();
+    trap::enable_timer_interrupt();
+    timer::set_next_trigger();
+    task::run_first_task();
+    panic!("Unreachable in rust_main!");
+
 }
 
 fn clear_bss() {
