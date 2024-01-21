@@ -1,43 +1,88 @@
-FROM ubuntu:22.10
-LABEL maintainer="dinghao188" \
-      version="1.0" \
-      description="ubuntu 22.10 with tools for tsinghua's rCore-Tutorial-V3"
+# syntax=docker/dockerfile:1
+# This Dockerfile is adapted from https://github.com/LearningOS/rCore-Tutorial-v3/blob/main/Dockerfile
+# with the following major updates:
+# - ubuntu 18.04 -> 20.04
+# - qemu 5.0.0 -> 7.0.0
+# - Extensive comments linking to relevant documentation
+FROM ubuntu:20.04
 
-#install some deps
-RUN set -x \
-    && apt update \
-    && apt install -y curl wget autoconf automake autotools-dev curl libmpc-dev libmpfr-dev libgmp-dev \
-              gawk build-essential bison flex texinfo gperf libtool patchutils bc xz-utils \
-              zlib1g-dev libexpat-dev pkg-config  libglib2.0-dev libpixman-1-dev git tmux python3 
+ARG QEMU_VERSION=7.0.0
+ARG GDB_VERSION=14.1
+ARG HOME=/root
 
-#install rust and qemu
-RUN set -x; \
-    RUSTUP='/root/rustup.sh' \
-    && cd $HOME \
-    #install rust
-    && curl https://sh.rustup.rs -sSf > $RUSTUP && chmod +x $RUSTUP \
-    && $RUSTUP -y --default-toolchain nightly --profile minimal \
+# 0. Install general tools
+ARG DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && \
+    apt-get install -y \
+    curl \
+    git \
+    python3 \
+    wget
 
-    #compile qemu
-    && wget https://ftp.osuosl.org/pub/blfs/conglomeration/qemu/qemu-5.0.0.tar.xz \
-    && tar xvJf qemu-5.0.0.tar.xz \
-    && cd qemu-5.0.0 \
-    && ./configure --target-list=riscv64-softmmu,riscv64-linux-user \
-    && make -j$(nproc) install \
-    && cd $HOME && rm -rf qemu-5.0.0 qemu-5.0.0.tar.xz
+# 1. Set up QEMU RISC-V
+# - https://learningos.github.io/rust-based-os-comp2022/0setup-devel-env.html#qemu
+# - https://www.qemu.org/download/
+# - https://wiki.qemu.org/Documentation/Platforms/RISCV
+# - https://risc-v-getting-started-guide.readthedocs.io/en/latest/linux-qemu.html
 
-#get code for rcore-tutorial-v3
-#RUN cd $HOME && git clone https://github.com/rcore-os/rCore-Tutorial-v3
+# 1.1. Download source
+WORKDIR ${HOME}
+RUN wget https://download.qemu.org/qemu-${QEMU_VERSION}.tar.xz && \
+    tar xvJf qemu-${QEMU_VERSION}.tar.xz
 
-#for chinese network
-RUN set -x; \
-    APT_CONF='/etc/apt/sources.list'; \
-    CARGO_CONF='/root/.cargo/config'; \
-    BASHRC='/root/.bashrc' \
-    && echo 'export RUSTUP_DIST_SERVER=https://mirrors.ustc.edu.cn/rust-static' >> $BASHRC \
-    && echo 'export RUSTUP_UPDATE_ROOT=https://mirrors.ustc.edu.cn/rust-static/rustup' >> $BASHRC \
-    && touch $CARGO_CONF \
-    && echo '[source.crates-io]' > $CARGO_CONF \
-    && echo "replace-with = 'ustc'" >> $CARGO_CONF \
-    && echo '[source.ustc]' >> $CARGO_CONF \
-    && echo 'registry = "git://mirrors.ustc.edu.cn/crates.io-index"' >> $CARGO_CONF
+RUN wget https://ftp.gnu.org/gnu/gdb/gdb-${GDB_VERSION}.tar.xz && \
+    tar xvJf gdb-${GDB_VERSION}.tar.xz
+
+# 1.2. Install dependencies
+# - https://risc-v-getting-started-guide.readthedocs.io/en/latest/linux-qemu.html#prerequisites
+RUN apt-get install -y \
+    autoconf automake autotools-dev curl libmpc-dev libmpfr-dev libgmp-dev \
+    gawk build-essential bison flex texinfo gperf libtool patchutils bc \
+    zlib1g-dev libexpat-dev git \
+    ninja-build pkg-config libglib2.0-dev libpixman-1-dev libsdl2-dev \
+    libncurses5-dev python2 python2-dev libreadline-dev tmux
+
+
+# 1.3. Build and install from source
+WORKDIR ${HOME}/qemu-${QEMU_VERSION}
+RUN ./configure --target-list=riscv64-softmmu,riscv64-linux-user && \
+    make -j$(nproc) && \
+    make install
+
+WORKDIR ${HOME}/gdb-${GDB_VERSION}
+RUN ./configure --prefix=/usr/local --target=riscv64-unknown-elf --enable-tui=yes && \
+    make -j$(nproc) && \
+    make install
+
+# 1.4. Clean up
+WORKDIR ${HOME}
+RUN rm -rf qemu-${QEMU_VERSION} qemu-${QEMU_VERSION}.tar.xz ${HOME}/gdb-${GDB_VERSION} gdb-${GDB_VERSION}.tar.xz
+
+# 1.5. Sanity checking
+RUN qemu-system-riscv64 --version && \
+    qemu-riscv64 --version
+
+# 2. Set up Rust
+# - https://learningos.github.io/rust-based-os-comp2022/0setup-devel-env.html#qemu
+# - https://www.rust-lang.org/tools/install
+# - https://github.com/rust-lang/docker-rust/blob/master/Dockerfile-debian.template
+
+# 2.1. Install
+ENV RUSTUP_HOME=/usr/local/rustup \
+    CARGO_HOME=/usr/local/cargo \
+    PATH=/usr/local/cargo/bin:$PATH \
+    RUST_VERSION=nightly
+RUN set -eux; \
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o rustup-init; \
+    chmod +x rustup-init; \
+    ./rustup-init -y --no-modify-path --profile minimal --default-toolchain $RUST_VERSION; \
+    rm rustup-init; \
+    chmod -R a+w $RUSTUP_HOME $CARGO_HOME;
+
+# 2.2. Sanity checking
+RUN rustup --version && \
+    cargo --version && \
+    rustc --version
+
+# Ready to go
+WORKDIR ${HOME}
